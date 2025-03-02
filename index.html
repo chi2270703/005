@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日本旅遊行程規劃器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            background-color: #f5f5f5;
+            font-size: 14px;
+            color: #333;
+            overflow-x: hidden;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        #form-container, #output-container {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            display: block;
+        }
+        #debug {
+            color: red;
+            text-align: center;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        label {
+            display: block;
+            margin: 5px 0;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            width: auto;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .day-form, .day {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .item {
+            margin-bottom: 20px;
+        }
+        .item h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #007bff;
+        }
+        .item p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+        .photos {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .photos img {
+            width: 300px;
+            height: auto;
+            border-radius: 5px;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 1440px) {
+            .photos img {
+                width: 100%;
+                max-width: 300px;
+            }
+            body {
+                font-size: 12px;
+            }
+            .item h3 {
+                font-size: 14px;
+            }
+            #form-container, #output-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>日本旅遊行程規劃器</h1>
+    <div id="debug">請選擇天數並點擊「生成表單」</div>
+    <div id="form-container">
+        <label for="days">選擇天數：</label>
+        <select id="days">
+            <option value="1">1 天</option>
+            <option value="2">2 天</option>
+            <option value="3">3 天</option>
+            <option value="4">4 天</option>
+            <option value="5">5 天</option>
+            <option value="6">6 天</option>
+            <option value="7">7 天</option>
+            <option value="8">8 天</option>
+            <option value="9">9 天</option>
+            <option value="10">10 天</option>
+        </select>
+        <button onclick="generateForm()">生成表單</button>
+        <div id="itinerary-form"></div>
+        <button onclick="generateItinerary()">產生行程表</button>
+    </div>
+    <div id="output-container" style="display: none;">
+        <h2>您的旅遊行程</h2>
+        <div id="itinerary-output"></div>
+        <button onclick="downloadItinerary()">下載行程表</button>
+    </div>
+
+    <script>
+        // 調試訊息
+        function updateDebug(message) {
+            document.getElementById('debug').innerText = message;
+        }
+
+        // 生成表單
+        function generateForm() {
+            const days = parseInt(document.getElementById('days').value);
+            const formContainer = document.getElementById('itinerary-form');
+            formContainer.innerHTML = '';
+            formContainer.style.display = 'block';
+            updateDebug('表單生成中...');
+
+            for (let i = 1; i <= days; i++) {
+                formContainer.innerHTML += `
+                    <div class="day-form" id="day-form-${i}">
+                        <h3>第 ${i} 天</h3>
+                        <label>日期 (如 6/22):</label>
+                        <input type="text" id="date-${i}" placeholder="輸入日期">
+                        <div id="items-${i}">
+                            <div class="item-${i}">
+                                <label>時間:</label>
+                                <input type="text" id="time-${i}-1" placeholder="如 AM9:00-12:00">
+                                <label>行程:</label>
+                                <input type="text" id="activity-${i}-1" placeholder="如 名古屋水族館">
+                                <label>交通:</label>
+                                <input type="text" id="transport-${i}-1" placeholder="如 地鐵">
+                                <label>餐廳:</label>
+                                <input type="text" id="restaurant-${i}-1" placeholder="如 丸屋本店">
+                                <label>預估費用 (JPY):</label>
+                                <input type="text" id="cost-${i}-1" placeholder="如 2500 (成人)">
+                                <label>Google Maps 連結:</label>
+                                <input type="text" id="map-${i}-1" placeholder="如 https://goo.gl/maps/...">
+                                <label>主要圖片 (上傳 JPG/PNG):</label>
+                                <input type="file" id="main-photo-${i}-1" accept="image/*">
+                                <label>額外圖片 1 (上傳 JPG/PNG):</label>
+                                <input type="file" id="extra-photo1-${i}-1" accept="image/*">
+                                <label>額外圖片 2 (上傳 JPG/PNG):</label>
+                                <input type="file" id="extra-photo2-${i}-1" accept="image/*">
+                            </div>
+                        </div>
+                        <button onclick="addItem(${i})">新增行程項目</button>
+                    </div>
+                `;
+            }
+            updateDebug('表單生成完成');
+        }
+
+        // 新增行程項目
+        function addItem(day) {
+            const itemsContainer = document.getElementById(`items-${day}`);
+            const itemCount = itemsContainer.children.length + 1;
+            itemsContainer.innerHTML += `
+                <div class="item-${day}">
+                    <label>時間:</label>
+                    <input type="text" id="time-${day}-${itemCount}" placeholder="如 AM9:00-12:00">
+                    <label>行程:</label>
+                    <input type="text" id="activity-${day}-${itemCount}" placeholder="如 名古屋水族館">
+                    <label>交通:</label>
+                    <input type="text" id="transport-${day}-${itemCount}" placeholder="如 地鐵">
+                    <label>餐廳:</label>
+                    <input type="text" id="restaurant-${day}-${itemCount}" placeholder="如 丸屋本店">
+                    <label>預估費用 (JPY):</label>
+                    <input type="text" id="cost-${day}-${itemCount}" placeholder="如 2500 (成人)">
+                    <label>Google Maps 連結:</label>
+                    <input type="text" id="map-${day}-${itemCount}" placeholder="如 https://goo.gl/maps/...">
+                    <label>主要圖片 (上傳 JPG/PNG):</label>
+                    <input type="file" id="main-photo-${day}-${itemCount}" accept="image/*">
+                    <label>額外圖片 1 (上傳 JPG/PNG):</label>
+                    <input type="file" id="extra-photo1-${day}-${itemCount}" accept="image/*">
+                    <label>額外圖片 2 (上傳 JPG/PNG):</label>
+                    <input type="file" id="extra-photo2-${day}-${itemCount}" accept="image/*">
+                </div>
+            `;
+            updateDebug(`第 ${day} 天新增項目 ${itemCount}`);
+        }
+
+        // 生成行程表
+        async function generateItinerary() {
+            const days = parseInt(document.getElementById('days').value);
+            const outputContainer = document.getElementById('output-container');
+            const itineraryOutput = document.getElementById('itinerary-output');
+            itineraryOutput.innerHTML = '';
+            outputContainer.style.display = 'block';
+            updateDebug('行程表生成中...');
+
+            let fullHtml = '';
+            for (let i = 1; i <= days; i++) {
+                const date = document.getElementById(`date-${i}`).value || '未設定日期';
+                const itemsContainer = document.getElementById(`items-${i}`);
+                const items = itemsContainer.children;
+                let dayHtml = `<div class="day" data-day="${i}"><h3>第 ${i} 天 - ${date}</h3>`;
+
+                for (let j = 0; j < items.length; j++) {
+                    const time = document.getElementById(`time-${i}-${j+1}`).value || '-';
+                    const activity = document.getElementById(`activity-${i}-${j+1}`).value || '-';
+                    const transport = document.getElementById(`transport-${i}-${j+1}`).value || '-';
+                    const restaurant = document.getElementById(`restaurant-${i}-${j+1}`).value || '-';
+                    const cost = document.getElementById(`cost-${i}-${j+1}`).value || '-';
+                    const map = document.getElementById(`map-${i}-${j+1}`).value || '#';
+                    const mainPhotoInput = document.getElementById(`main-photo-${i}-${j+1}`);
+                    const extraPhoto1Input = document.getElementById(`extra-photo1-${i}-${j+1}`);
+                    const extraPhoto2Input = document.getElementById(`extra-photo2-${i}-${j+1}`);
+
+                    const mainPhoto = mainPhotoInput.files[0] ? await readFile(mainPhotoInput.files[0]) : 'https://via.placeholder.com/300';
+                    const extraPhoto1 = extraPhoto1Input.files[0] ? await readFile(extraPhoto1Input.files[0]) : '';
+                    const extraPhoto2 = extraPhoto2Input.files[0] ? await readFile(extraPhoto2Input.files[0]) : '';
+
+                    dayHtml += `
+                        <div class="item">
+                            <p><strong>時間:</strong> ${time}</p>
+                            <p><strong>行程:</strong> ${activity}</p>
+                            <p><strong>交通:</strong> ${transport}</p>
+                            <p><strong>餐廳:</strong> ${restaurant}</p>
+                            <p><strong>預估費用:</strong> ${cost}</p>
+                            <p><strong>地圖:</strong> <a href="${map}" target="_blank">${map !== '#' ? '查看地圖' : '-'}</a></p>
+                            <div class="photos">
+                                <img src="${mainPhoto}" alt="${activity}">
+                                ${extraPhoto1 ? `<img src="${extraPhoto1}" alt="Extra 1">` : ''}
+                                ${extraPhoto2 ? `<img src="${extraPhoto2}" alt="Extra 2">` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                dayHtml += `</div>`;
+                fullHtml += dayHtml;
+            }
+
+            itineraryOutput.innerHTML = fullHtml;
+            updateDebug('行程表生成完成');
+        }
+
+        // 讀取檔案為 Base64
+        function readFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 下載行程表
+        function downloadItinerary() {
+            const itineraryOutput = document.getElementById('itinerary-output').innerHTML;
+            const fullHtml = `
+                <!DOCTYPE html>
+                <html lang="zh">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>您的旅遊行程</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 10px; background-color: #f5f5f5; font-size: 14px; color: #333; }
+                        h2 { text-align: center; color: #333; font-size: 18px; margin-bottom: 20px; }
+                        .day { background-color: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+                        .item { margin-bottom: 20px; }
+                        .item h3 { margin: 0 0 5px 0; font-size: 16px; color: #007bff; }
+                        .item p { margin: 5px 0; line-height: 1.4; }
+                        .photos { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+                        .photos img { width: 300px; height: auto; border-radius: 5px; }
+                        a { color: #007bff; text-decoration: none; }
+                        a:hover { text-decoration: underline; }
+                        @media (max-width: 600px) {
+                            .photos img { width: 100%; max-width: 300px; }
+                            body { font-size: 12px; }
+                            .item h3 { font-size: 14px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>您的旅遊行程</h2>
+                    ${itineraryOutput}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([fullHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'travel_itinerary.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            updateDebug('行程表已下載');
+        }
+    </script>
+</body>
+</html>
