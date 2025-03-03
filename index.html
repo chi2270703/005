@@ -116,7 +116,7 @@
 </head>
 <body>
     <h1>日本旅遊行程規劃器</h1>
-    <div id="debug">請選擇天數並點擊「生成表單」</div>
+    <div id="debug">請選擇天數並點擊「生成表單」或上傳檔案</div>
     <div id="form-container">
         <label for="days">選擇天數：</label>
         <select id="days">
@@ -132,6 +132,8 @@
             <option value="10">10 天</option>
         </select>
         <button onclick="generateForm()">生成表單</button>
+        <label for="load-file">讀取行程檔案：</label>
+        <input type="file" id="load-file" accept=".html" onchange="loadItinerary()">
         <div id="itinerary-form"></div>
         <button onclick="generateItinerary()">產生行程表</button>
     </div>
@@ -147,7 +149,10 @@
             document.getElementById('debug').innerText = message;
         }
 
-        // 生成表單
+        // 儲存圖片檔案數據，使用 let 確保可變
+        let fileData = {};
+
+        // 生成空白表單
         function generateForm() {
             const days = parseInt(document.getElementById('days').value);
             const formContainer = document.getElementById('itinerary-form');
@@ -188,12 +193,18 @@
                 `;
             }
             updateDebug('表單生成完成');
+            restoreFiles(); // 還原已保存的圖片檔案
         }
 
         // 新增行程項目
         function addItem(day) {
             const itemsContainer = document.getElementById(`items-${day}`);
             const itemCount = itemsContainer.children.length + 1;
+
+            // 儲存當前所有數據
+            saveFiles();
+
+            // 直接在現有項目後添加新項目
             itemsContainer.innerHTML += `
                 <div class="item-${day}">
                     <label>時間:</label>
@@ -216,7 +227,213 @@
                     <input type="file" id="extra-photo2-${day}-${itemCount}" accept="image/*">
                 </div>
             `;
+
             updateDebug(`第 ${day} 天新增項目 ${itemCount}`);
+            restoreFiles(); // 還原所有圖片檔案，包括新舊項目
+        }
+
+        // 儲存圖片檔案和文字數據
+        function saveFiles() {
+            const days = parseInt(document.getElementById('days').value);
+            fileData = {};
+            for (let i = 1; i <= days; i++) {
+                const items = document.getElementById(`items-${i}`).children;
+                for (let j = 0; j < items.length; j++) {
+                    const mainPhoto = document.getElementById(`main-photo-${i}-${j+1}`);
+                    const extraPhoto1 = document.getElementById(`extra-photo1-${i}-${j+1}`);
+                    const extraPhoto2 = document.getElementById(`extra-photo2-${i}-${j+1}`);
+                    const time = document.getElementById(`time-${i}-${j+1}`).value;
+                    const activity = document.getElementById(`activity-${i}-${j+1}`).value;
+                    const transport = document.getElementById(`transport-${i}-${j+1}`).value;
+                    const restaurant = document.getElementById(`restaurant-${i}-${j+1}`).value;
+                    const cost = document.getElementById(`cost-${i}-${j+1}`).value;
+                    const map = document.getElementById(`map-${i}-${j+1}`).value;
+
+                    fileData[`main-photo-${i}-${j+1}`] = mainPhoto.files ? mainPhoto.files[0] || null : null;
+                    fileData[`extra-photo1-${i}-${j+1}`] = extraPhoto1.files ? extraPhoto1.files[0] || null : null;
+                    fileData[`extra-photo2-${i}-${j+1}`] = extraPhoto2.files ? extraPhoto2.files[0] || null : null;
+                    fileData[`time-${i}-${j+1}`] = time || '';
+                    fileData[`activity-${i}-${j+1}`] = activity || '';
+                    fileData[`transport-${i}-${j+1}`] = transport || '';
+                    fileData[`restaurant-${i}-${j+1}`] = restaurant || '';
+                    fileData[`cost-${i}-${j+1}`] = cost || '';
+                    fileData[`map-${i}-${j+1}`] = map || '';
+                }
+            }
+            updateDebug('數據和圖片檔案已保存');
+        }
+
+        // 還原圖片檔案和文字數據
+        function restoreFiles() {
+            const days = parseInt(document.getElementById('days').value);
+            for (let i = 1; i <= days; i++) {
+                const items = document.getElementById(`items-${i}`).children;
+                for (let j = 0; j < items.length; j++) {
+                    const mainPhoto = document.getElementById(`main-photo-${i}-${j+1}`);
+                    const extraPhoto1 = document.getElementById(`extra-photo1-${i}-${j+1}`);
+                    const extraPhoto2 = document.getElementById(`extra-photo2-${i}-${j+1}`);
+                    const timeInput = document.getElementById(`time-${i}-${j+1}`);
+                    const activityInput = document.getElementById(`activity-${i}-${j+1}`);
+                    const transportInput = document.getElementById(`transport-${i}-${j+1}`);
+                    const restaurantInput = document.getElementById(`restaurant-${i}-${j+1}`);
+                    const costInput = document.getElementById(`cost-${i}-${j+1}`);
+                    const mapInput = document.getElementById(`map-${i}-${j+1}`);
+
+                    if (fileData[`main-photo-${i}-${j+1}`]) {
+                        try {
+                            const blob = new Blob([fileData[`main-photo-${i}-${j+1}`]], { type: fileData[`main-photo-${i}-${j+1}`].type });
+                            assignFile(`main-photo-${i}-${j+1}`, blob);
+                            updateDebug(`還原圖片檔案：main-photo-${i}-${j+1}`);
+                        } catch (error) {
+                            updateDebug(`還原圖片失敗（主要）：${error.message}`);
+                        }
+                    }
+                    if (fileData[`extra-photo1-${i}-${j+1}`]) {
+                        try {
+                            const blob = new Blob([fileData[`extra-photo1-${i}-${j+1}`]], { type: fileData[`extra-photo1-${i}-${j+1}`].type });
+                            assignFile(`extra-photo1-${i}-${j+1}`, blob);
+                            updateDebug(`還原圖片檔案：extra-photo1-${i}-${j+1}`);
+                        } catch (error) {
+                            updateDebug(`還原圖片失敗（額外 1）：${error.message}`);
+                        }
+                    }
+                    if (fileData[`extra-photo2-${i}-${j+1}`]) {
+                        try {
+                            const blob = new Blob([fileData[`extra-photo2-${i}-${j+1}`]], { type: fileData[`extra-photo2-${i}-${j+1}`].type });
+                            assignFile(`extra-photo2-${i}-${j+1}`, blob);
+                            updateDebug(`還原圖片檔案：extra-photo2-${i}-${j+1}`);
+                        } catch (error) {
+                            updateDebug(`還原圖片失敗（額外 2）：${error.message}`);
+                        }
+                    }
+
+                    // 還原文字數據
+                    timeInput.value = fileData[`time-${i}-${j+1}`] || '';
+                    activityInput.value = fileData[`activity-${i}-${j+1}`] || '';
+                    transportInput.value = fileData[`transport-${i}-${j+1}`] || '';
+                    restaurantInput.value = fileData[`restaurant-${i}-${j+1}`] || '';
+                    costInput.value = fileData[`cost-${i}-${j+1}`] || '';
+                    mapInput.value = fileData[`map-${i}-${j+1}`] || '';
+                }
+            }
+            updateDebug('數據和圖片檔案已還原');
+        }
+
+        // 將 Blob 指派給檔案輸入
+        function assignFile(inputId, blob) {
+            const file = new File([blob], `${inputId}.jpg`, { type: blob.type });
+            const input = document.getElementById(inputId);
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
+        }
+
+        // 讀取行程檔案
+        async function loadItinerary() {
+            const fileInput = document.getElementById('load-file');
+            if (!fileInput.files[0]) {
+                updateDebug('請選擇一個行程檔案');
+                return;
+            }
+
+            updateDebug('正在讀取檔案...');
+            const file = fileInput.files[0];
+            try {
+                const text = await file.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const days = doc.querySelectorAll('.day');
+                if (!days.length) {
+                    updateDebug('檔案格式無效，找不到行程資料');
+                    return;
+                }
+
+                // 設置天數
+                document.getElementById('days').value = days.length;
+                const formContainer = document.getElementById('itinerary-form');
+                formContainer.innerHTML = '';
+                formContainer.style.display = 'block';
+
+                for (let i = 0; i < days.length; i++) {
+                    const day = days[i];
+                    const dayTitle = day.querySelector('h3').innerText;
+                    const dateMatch = dayTitle.match(/第 (\d+) 天 - (.+)/);
+                    const date = dateMatch ? dateMatch[2] : '未設定日期';
+                    const items = day.querySelectorAll('.item');
+
+                    formContainer.innerHTML += `
+                        <div class="day-form" id="day-form-${i+1}">
+                            <h3>第 ${i+1} 天</h3>
+                            <label>日期 (如 6/22):</label>
+                            <input type="text" id="date-${i+1}" value="${date}">
+                            <div id="items-${i+1}"></div>
+                            <button onclick="addItem(${i+1})">新增行程項目</button>
+                        </div>
+                    `;
+
+                    const itemsContainer = document.getElementById(`items-${i+1}`);
+                    for (let j = 0; j < items.length; j++) {
+                        const item = items[j];
+                        const time = item.querySelector('p:nth-child(1)')?.innerText.replace('時間: ', '') || '-';
+                        const activity = item.querySelector('p:nth-child(2)')?.innerText.replace('行程: ', '') || '-';
+                        const transport = item.querySelector('p:nth-child(3)')?.innerText.replace('交通: ', '') || '-';
+                        const restaurant = item.querySelector('p:nth-child(4)')?.innerText.replace('餐廳: ', '') || '-';
+                        const cost = item.querySelector('p:nth-child(5)')?.innerText.replace('預估費用: ', '') || '-';
+                        const mapLink = item.querySelector('p:nth-child(6) a')?.href || '#';
+                        const photos = item.querySelectorAll('.photos img');
+                        const mainPhotoSrc = photos[0]?.src || 'https://via.placeholder.com/300';
+                        const extraPhoto1Src = photos[1]?.src || '';
+                        const extraPhoto2Src = photos[2]?.src || '';
+
+                        itemsContainer.innerHTML += `
+                            <div class="item-${i+1}">
+                                <label>時間:</label>
+                                <input type="text" id="time-${i+1}-${j+1}" value="${time}">
+                                <label>行程:</label>
+                                <input type="text" id="activity-${i+1}-${j+1}" value="${activity}">
+                                <label>交通:</label>
+                                <input type="text" id="transport-${i+1}-${j+1}" value="${transport}">
+                                <label>餐廳:</label>
+                                <input type="text" id="restaurant-${i+1}-${j+1}" value="${restaurant}">
+                                <label>預估費用 (JPY):</label>
+                                <input type="text" id="cost-${i+1}-${j+1}" value="${cost}">
+                                <label>Google Maps 連結:</label>
+                                <input type="text" id="map-${i+1}-${j+1}" value="${mapLink !== '#' ? mapLink : ''}">
+                                <label>主要圖片 (上傳 JPG/PNG):</label>
+                                <input type="file" id="main-photo-${i+1}-${j+1}" accept="image/*">
+                                <label>額外圖片 1 (上傳 JPG/PNG):</label>
+                                <input type="file" id="extra-photo1-${i+1}-${j+1}" accept="image/*">
+                                <label>額外圖片 2 (上傳 JPG/PNG):</label>
+                                <input type="file" id="extra-photo2-${i+1}-${j+1}" accept="image/*">
+                            </div>
+                        `;
+
+                        // 將 Base64 圖片轉回檔案並預覽
+                        if (mainPhotoSrc && mainPhotoSrc.startsWith('data:image')) {
+                            fetch(mainPhotoSrc).then(res => res.blob()).then(blob => assignFile(`main-photo-${i+1}-${j+1}`, blob));
+                        }
+                        if (extraPhoto1Src && extraPhoto1Src.startsWith('data:image')) {
+                            fetch(extraPhoto1Src).then(res => res.blob()).then(blob => assignFile(`extra-photo1-${i+1}-${j+1}`, blob));
+                        }
+                        if (extraPhoto2Src && extraPhoto2Src.startsWith('data:image')) {
+                            fetch(extraPhoto2Src).then(res => res.blob()).then(blob => assignFile(`extra-photo2-${i+1}-${j+1}`, blob));
+                        }
+                    }
+                }
+                saveFiles(); // 儲存讀取後的圖片檔案和文字數據
+                updateDebug('行程檔案讀取完成');
+            } catch (error) {
+                updateDebug(`讀取檔案失敗：${error.message}`);
+            }
+        }
+
+        // 將 Blob 指派給檔案輸入
+        function assignFile(inputId, blob) {
+            const file = new File([blob], `${inputId}.jpg`, { type: blob.type });
+            const input = document.getElementById(inputId);
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
         }
 
         // 生成行程表
