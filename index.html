@@ -453,38 +453,76 @@
                 let dayHtml = `<div class="day" data-day="${i}"><h3>第 ${i} 天 - ${date}</h3>`;
 
                 for (let j = 0; j < items.length; j++) {
-                    const time = document.getElementById(`time-${i}-${j+1}`).value || '-';
-                    const activity = document.getElementById(`activity-${i}-${j+1}`).value || '-';
-                    const transport = document.getElementById(`transport-${i}-${j+1}`).value || '-';
-                    const restaurant = document.getElementById(`restaurant-${i}-${j+1}`).value || '-';
-                    const cost = document.getElementById(`cost-${i}-${j+1}`).value || '-';
-                    const map = document.getElementById(`map-${i}-${j+1}`).value || '#';
+                    const time = document.getElementById(`time-${i}-${j+1}`).value.trim();
+                    const activity = document.getElementById(`activity-${i}-${j+1}`).value.trim();
+                    const transport = document.getElementById(`transport-${i}-${j+1}`).value.trim();
+                    const restaurant = document.getElementById(`restaurant-${i}-${j+1}`).value.trim();
+                    const cost = document.getElementById(`cost-${i}-${j+1}`).value.trim();
+                    const map = document.getElementById(`map-${i}-${j+1}`).value.trim();
                     const mainPhotoInput = document.getElementById(`main-photo-${i}-${j+1}`);
                     const extraPhoto1Input = document.getElementById(`extra-photo1-${i}-${j+1}`);
                     const extraPhoto2Input = document.getElementById(`extra-photo2-${i}-${j+1}`);
 
-                    const mainPhoto = mainPhotoInput.files[0] ? await readFile(mainPhotoInput.files[0]) : 'https://via.placeholder.com/300';
-                    const extraPhoto1 = extraPhoto1Input.files[0] ? await readFile(extraPhoto1Input.files[0]) : '';
-                    const extraPhoto2 = extraPhoto2Input.files[0] ? await readFile(extraPhoto2Input.files[0]) : '';
+                    let itemHtml = '<div class="item">';
+                    let hasContent = false;
 
-                    dayHtml += `
-                        <div class="item">
-                            <p><strong>時間:</strong> ${time}</p>
-                            <p><strong>行程:</strong> ${activity}</p>
-                            <p><strong>交通:</strong> ${transport}</p>
-                            <p><strong>餐廳:</strong> ${restaurant}</p>
-                            <p><strong>預估費用:</strong> ${cost}</p>
-                            <p><strong>地圖:</strong> <a href="${map}" target="_blank">${map !== '#' ? '查看地圖' : '-'}</a></p>
-                            <div class="photos">
-                                <img src="${mainPhoto}" alt="${activity}">
-                                ${extraPhoto1 ? `<img src="${extraPhoto1}" alt="Extra 1">` : ''}
-                                ${extraPhoto2 ? `<img src="${extraPhoto2}" alt="Extra 2">` : ''}
-                            </div>
-                        </div>
-                    `;
+                    // 檢查時間和行程，必須至少有一個顯示
+                    if (time || activity) {
+                        if (time) {
+                            itemHtml += `<p><strong>時間:</strong> ${time}</p>`;
+                            hasContent = true;
+                        }
+                        if (activity) {
+                            itemHtml += `<p><strong>行程:</strong> ${activity}</p>`;
+                            hasContent = true;
+                        }
+                        if (transport) {
+                            itemHtml += `<p><strong>交通:</strong> ${transport}</p>`;
+                            hasContent = true;
+                        }
+                        if (restaurant) {
+                            itemHtml += `<p><strong>餐廳:</strong> ${restaurant}</p>`;
+                            hasContent = true;
+                        }
+                        if (cost) {
+                            itemHtml += `<p><strong>預估費用:</strong> ${cost}</p>`;
+                            hasContent = true;
+                        }
+                        if (map) {
+                            itemHtml += `<p><strong>地圖:</strong> <a href="${map}" target="_blank">查看地圖</a></p>`;
+                            hasContent = true;
+                        }
+
+                        // 檢查圖片，僅顯示有上傳的圖片
+                        const mainPhoto = mainPhotoInput.files[0] ? await readFile(mainPhotoInput.files[0]) : null;
+                        const extraPhoto1 = extraPhoto1Input.files[0] ? await readFile(extraPhoto1Input.files[0]) : null;
+                        const extraPhoto2 = extraPhoto2Input.files[0] ? await readFile(extraPhoto2Input.files[0]) : null;
+
+                        if (mainPhoto || extraPhoto1 || extraPhoto2) {
+                            itemHtml += '<div class="photos">';
+                            if (mainPhoto) {
+                                itemHtml += `<img src="${mainPhoto}" alt="${activity || '主要圖片'}">`;
+                            }
+                            if (extraPhoto1) {
+                                itemHtml += `<img src="${extraPhoto1}" alt="額外圖片 1">`;
+                            }
+                            if (extraPhoto2) {
+                                itemHtml += `<img src="${extraPhoto2}" alt="額外圖片 2">`;
+                            }
+                            itemHtml += '</div>';
+                            hasContent = true;
+                        }
+
+                        if (hasContent) {
+                            itemHtml += '</div>';
+                            dayHtml += itemHtml;
+                        }
+                    }
                 }
                 dayHtml += `</div>`;
-                fullHtml += dayHtml;
+                if (dayHtml.includes('<div class="item">')) {
+                    fullHtml += dayHtml;
+                }
             }
 
             itineraryOutput.innerHTML = fullHtml;
